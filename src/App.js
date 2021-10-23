@@ -23,10 +23,10 @@ const Content = () => {
     token: null,
   };
 
-  let init = async (name, appId) => {
+  let init = async (name) => {
     rtc.current.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
     initClientEvents()
-    const uid = await rtc.current.client.join(appId, name, options.token, null);
+    const uid = await rtc.current.client.join(options.appId, name, options.token, null);
     // Create an audio track from the audio sampled by a microphone.
     rtc.current.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
     // Create a video track from the video captured by a camera.
@@ -187,12 +187,10 @@ export const Controls = ({ user }) => {
 const ChannelForm = ({ initFunc }) => {
 
   const [channelName, setChannelName] = useState('')
-  const [appId, setappId] = useState('')
   return (
     <form className='join'>
-      <input type="text" placeholder="Enter App Id" onChange={(e) => { setappId(e.target.value) }} />
       <input type="text" placeholder='Enter Channel Name' onChange={(e) => setChannelName(e.target.value)} />
-      <button onClick={(e) => { e.preventDefault(); initFunc(channelName, appId); }}>Join Call</button>
+      <button onClick={(e) => { e.preventDefault(); initFunc(channelName); }}>Join Call</button>
     </form>
   );
 
