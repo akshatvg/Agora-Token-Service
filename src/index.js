@@ -1,11 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import Call from './Call';
+import App from './App';
 
 ReactDOM.render(
   <React.StrictMode>
-    <Call />
+    <App />
   </React.StrictMode>,
   document.getElementById('root')
 );
