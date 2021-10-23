@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import AgoraRTC from "agora-rtc-sdk-ng"
 import { GlobalProvider, useClient, useStart, useUsers } from './GlobalContext';
+import axios from 'axios';
 
 const App = () => {
   return (
@@ -14,33 +15,64 @@ const Content = () => {
   const setUsers = useUsers()[1]
   const [start, setStart] = useStart()
   const rtc = useClient()
+
+  const [token, setToken] = useState(null)
+
   const options = {
     // Pass your app ID here.
     appId: process.env.REACT_APP_AGORA_APP_ID,
     // Set the channel name.
     channel: "Agora_Default_Channel",
-    // Pass a token if your project enables the App Certificate.
-    token: null,
+    uid: 0
   };
 
   let init = async (name) => {
     rtc.current.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-    initClientEvents()
-    const uid = await rtc.current.client.join(options.appId, name, options.token, null);
-    // Create an audio track from the audio sampled by a microphone.
-    rtc.current.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-    // Create a video track from the video captured by a camera.
-    rtc.current.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-    //Adding a User to the Users State
-    setUsers((prevUsers) => {
-      return [...prevUsers, { uid: uid, audio: true, video: true, client: true, videoTrack: rtc.current.localVideoTrack }]
-    })
-    //Publishing your Streams
-    await rtc.current.client.publish([rtc.current.localAudioTrack, rtc.current.localVideoTrack]);
-    setStart(true)
+    initClientEvents();
+    axios.get(`${process.env.REACT_APP_BACKEND_URL}/access_token?channel=${name}&uid=${options.uid}`)
+      .then(async function (response) {
+        setToken(response.data.token);
+        console.log(response.data.token);
+        const uid = await rtc.current.client.join(options.appId, name, token, options.uid);
+        // Create an audio track from the audio sampled by a microphone.
+        rtc.current.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        // Create a video track from the video captured by a camera.
+        rtc.current.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+        //Adding a User to the Users State
+        setUsers((prevUsers) => {
+          return [...prevUsers, { uid: uid, audio: true, video: true, client: true, videoTrack: rtc.current.localVideoTrack }]
+        })
+        //Publishing your Streams
+        await rtc.current.client.publish([rtc.current.localAudioTrack, rtc.current.localVideoTrack]);
+        setStart(true)
+      })
+      .catch(function (err) {
+        console.log('Error: ', err);
+      });
+
+    rtc.current.client.on("token-privilege-will-expire", async () => {
+      // After requesting a new token
+      await rtc.current.client.renewToken(token);
+    });
+
+    rtc.current.client.on("token-privilege-did-expire", async () => {
+      const uid = await rtc.current.client.join(options.appId, name, token, options.uid);
+      // Create an audio track from the audio sampled by a microphone.
+      rtc.current.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      // Create a video track from the video captured by a camera.
+      rtc.current.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+      //Adding a User to the Users State
+      setUsers((prevUsers) => {
+        return [...prevUsers, { uid: uid, audio: true, video: true, client: true, videoTrack: rtc.current.localVideoTrack }]
+      })
+      //Publishing your Streams
+      await rtc.current.client.publish([rtc.current.localAudioTrack, rtc.current.localVideoTrack]);
+      setStart(true)
+    });
   }
 
   const initClientEvents = () => {
+
     rtc.current.client.on("user-published", async (user, mediaType) => {
       // New User Enters
       await rtc.current.client.subscribe(user, mediaType);
