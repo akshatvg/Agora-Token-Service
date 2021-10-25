@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import AgoraRTC from "agora-rtc-sdk-ng"
 import { GlobalProvider, useClient, useStart, useUsers } from './GlobalContext';
-import axios from 'axios';
 
 const App = () => {
   return (
