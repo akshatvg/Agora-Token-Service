@@ -29,38 +29,42 @@ const Content = () => {
   let init = async (name) => {
     rtc.current.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
     initClientEvents();
-    axios.get(`${process.env.REACT_APP_BACKEND_URL}/access_token?channel=${name}&uid=${options.uid}`)
-      .then(async function (response) {
-        setToken(response.data.token);
-        console.log(response.data.token);
-        const uid = await rtc.current.client.join(options.appId, name, token, options.uid);
-        // Create an audio track from the audio sampled by a microphone.
-        rtc.current.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        // Create a video track from the video captured by a camera.
-        rtc.current.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-        //Adding a User to the Users State
-        setUsers((prevUsers) => {
-          return [...prevUsers, { uid: uid, audio: true, video: true, client: true, videoTrack: rtc.current.localVideoTrack }]
-        })
-        //Publishing your Streams
-        await rtc.current.client.publish([rtc.current.localAudioTrack, rtc.current.localVideoTrack]);
-        setStart(true)
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/access_token?channel=${name}&uid=${options.uid}`)
+      .then(function (response) {
+        response.json().then(async function (data) {
+          console.log(data.token);
+          setToken(data.token);
+          const uid = await rtc.current.client.join(options.appId, name, token, options.uid);
+          // Create an audio track from the audio sampled by a microphone.
+          rtc.current.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+          // Create a video track from the video captured by a camera.
+          rtc.current.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+          //Adding a User to the Users State
+          setUsers((prevUsers) => {
+            return [...prevUsers, { uid: uid, audio: true, video: true, client: true, videoTrack: rtc.current.localVideoTrack }]
+          })
+          //Publishing your Streams
+          await rtc.current.client.publish([rtc.current.localAudioTrack, rtc.current.localVideoTrack]);
+          setStart(true)
+        });
       })
       .catch(function (err) {
-        console.log('Error: ', err);
+        console.log('Fetch Error', err);
       });
 
     rtc.current.client.on("token-privilege-will-expire", async () => {
-      axios.get(`${process.env.REACT_APP_BACKEND_URL}/access_token?channel=${name}&uid=${options.uid}`)
-      .then(async function (response) {
-        setToken(response.data.token);
-        console.log(response.data.token);
-        // After requesting a new token
-      await rtc.current.client.renewToken(response.data.token);
-      })
-      .catch(function (err) {
-        console.log('Error: ', err);
-      });
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/access_token?channel=${name}&uid=${options.uid}`)
+        .then(function (response) {
+          response.json().then(async function (data) {
+            console.log(data.token);
+            setToken(data.token);
+            // After requesting a new token
+            await rtc.current.client.renewToken(data.token);
+          });
+        })
+        .catch(function (err) {
+          console.log('Fetch Error', err);
+        });
     });
   }
 
